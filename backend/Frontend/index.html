@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NetWatch | Advanced Network Monitoring</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        .hero-title {
+            font-size: 4rem;
+            background: linear-gradient(135deg, #00d4ff, #6c63ff, #f5576c);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 1rem;
+            animation: fadeInUp 0.8s ease;
+        }
+        .hero-subtitle {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+        }
+        .btn-group {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+        .btn {
+            padding: 0.8rem 2rem;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #00d4ff, #0099cc);
+            color: white;
+        }
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(0, 212, 255, 0.3);
+        }
+        .btn-outline {
+            border: 1px solid var(--primary);
+            color: var(--primary);
+        }
+        .btn-outline:hover {
+            background: rgba(0, 212, 255, 0.1);
+        }
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-top: 4rem;
+            padding: 2rem;
+        }
+        .feature-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 1.5rem;
+            text-align: center;
+            border: 1px solid var(--glass-border);
+        }
+        .feature-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="hero">
+        <div>
+            <div class="logo-icon" style="margin: 0 auto 2rem; width: 80px; height: 80px; font-size: 2.5rem;">🌐</div>
+            <h1 class="hero-title">NetWatch</h1>
+            <p class="hero-subtitle">Advanced Real-Time Network Monitoring System<br>Final Year Project 2025</p>
+            <div class="btn-group">
+                <a href="dashboard.html" class="btn btn-primary">🚀 Launch Dashboard</a>
+                <a href="alerts.html" class="btn btn-outline">🔔 Alert Center</a>
+                <a href="map.html" class="btn btn-outline">🗺️ Live Map</a>
+            </div>
+            
+            <div class="features">
+                <div class="feature-card">
+                    <div class="feature-icon">📡</div>
+                    <h3>Real-Time WebSocket</h3>
+                    <p>Live data streaming with zero latency</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🤖</div>
+                    <h3>ML Anomaly Detection</h3>
+                    <p>Isolation Forest + Statistical methods</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📍</div>
+                    <h3>GeoIP Tracking</h3>
+                    <p>World map visualization of traffic</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔔</div>
+                    <h3>Multi-Channel Alerts</h3>
+                    <p>Email, Slack, Discord, Desktop</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

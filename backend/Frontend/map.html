@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NetWatch | GeoIP Live Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body{
+            background: linear-gradient(135deg, #0a0e27 0%, #050814 100%);
+            font-family: 'Inter', system-ui, sans-serif;
+            min-height: 100vh;
+            color: #fff;
+        }
+        .navbar{
+            background: rgba(5,8,20,0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding: 0.8rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo{
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.3rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #00d4ff, #6c63ff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .logo-icon{
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, #00d4ff, #6c63ff);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+        }
+        .nav-links{
+            display: flex;
+            gap: 0.8rem;
+        }
+        .nav-link{
+            color: #7f8cbf;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 10px;
+            transition: all 0.3s;
+        }
+        .nav-link:hover, .nav-link.active{
+            background: rgba(0,212,255,0.15);
+            color: #00d4ff;
+        }
+        .api-status{
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(0,212,255,0.1);
+            padding: 0.3rem 1rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+        }
+        .status-dot{
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #2ecc87;
+            animation: pulse 1.5s infinite;
+        }
+        .status-dot.off{
+            background: #ef4444;
+            animation: none;
+        }
+        @keyframes pulse{
+            0%,100%{ opacity:1; transform:scale(1); }
+            50%{ opacity:0.4; transform:scale(0.8); }
+        }
+        .container{
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1.5rem;
+        }
+        .map-header{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .map-header h1{
+            font-size: 1.5rem;
+            background: linear-gradient(135deg, #00d4ff, #6c63ff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .ip-search{
+            display: flex;
+            gap: 0.5rem;
+        }
+        .ip-search input{
+            background: rgba(17,22,42,0.8);
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 0.5rem 1rem;
+            border-radius: 12px;
+            color: white;
+            width: 200px;
+        }
+        .ip-search input:focus{
+            outline: none;
+            border-color: #00d4ff;
+        }
+        .ip-search button{
+            background: linear-gradient(135deg, #00d4ff, #6c63ff);
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 12px;
+            cursor: pointer;
+            color: white;
+            font-weight: 500;
+            transition: transform 0.2s;
+        }
+        .ip-search button:hover{
+            transform: scale(1.02);
+        }
+        .map-container{
+            height: 500px;
+            border-radius: 24px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .section-title{
+            color: #7f8cbf;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+            letter-spacing: 0.08em;
+        }
+        .ip-list{
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        .ip-card{
+            background: rgba(17,22,42,0.8);
+            backdrop-filter: blur(10px);
+            padding: 0.6rem 1rem;
+            border-radius: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        .ip-card:hover{
+            border-color: #00d4ff;
+            transform: translateX(5px);
+            background: rgba(0,212,255,0.1);
+        }
+        .no-data{
+            text-align: center;
+            padding: 2rem;
+            color: #4a5580;
+        }
+        @media (max-width: 768px){
+            .map-header{ flex-direction: column; align-items: stretch; }
+            .ip-search{ justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo">
+            <div class="logo-icon">🌐</div>
+            NetWatch
+        </div>
+        <div class="nav-links">
+            <a href="dashboard.html" class="nav-link">📊 Dashboard</a>
+            <a href="alerts.html" class="nav-link">🔔 Alerts</a>
+            <a href="map.html" class="nav-link active">🗺️ Map</a>
+        </div>
+        <div class="api-status">
+            <div class="status-dot" id="status-dot"></div>
+            <span id="api-status-text">Checking API...</span>
+        </div>
+    </nav>
+    
+    <div class="container">
+        <div class="map-header">
+            <h1>🌍 Live GeoIP Traffic Map</h1>
+            <div class="ip-search">
+                <input type="text" id="ip-input" placeholder="Enter IP address... (e.g., 8.8.8.8)">
+                <button onclick="searchIP()">🔍 Locate</button>
+                <button onclick="trackMyIP()">📍 My Location</button>
+            </div>
+        </div>
+        
+        <div id="map" class="map-container"></div>
+        
+        <div class="section-title">📍 Recent Connections (Click to locate)</div>
+        <div id="ip-list" class="ip-list">
+            <div class="no-data">Loading connections...</div>
+        </div>
+    </div>
+
+    <script>
+        let map;
+        let markers = [];
+        const API_BASE = 'http://127.0.0.1:8000';
+        
+        // Initialize Map
+        function initMap() {
+            map = L.map('map').setView([20, 0], 2);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>',
+                subdomains: 'abcd',
+                minZoom: 1,
+                maxZoom: 18
+            }).addTo(map);
+            
+            // Check API status
+            checkAPIStatus();
+        }
+        
+        // Check API Health
+        async function checkAPIStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/api/health`);
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('status-dot').className = 'status-dot';
+                    document.getElementById('api-status-text').innerHTML = `API Online (v${data.version})`;
+                } else {
+                    throw new Error('API not responding');
+                }
+            } catch(error) {
+                document.getElementById('status-dot').className = 'status-dot off';
+                document.getElementById('api-status-text').innerHTML = 'API Offline';
+                console.error('API Error:', error);
+            }
+        }
+        
+        // Search IP
+        async function searchIP() {
+            const ip = document.getElementById('ip-input').value.trim();
+            if (!ip) {
+                alert('Please enter an IP address');
+                return;
+            }
+            
+            // Validate IP format
+            const ipRegex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+            if (!ipRegex.test(ip) && ip !== 'localhost' && ip !== 'myip') {
+                alert('Please enter a valid IP address (e.g., 8.8.8.8)');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/geoip/${ip}`);
+                const data = await response.json();
+                
+                if (data.latitude && data.longitude && data.latitude !== 0) {
+                    addMarkerToMap(data);
+                    document.getElementById('ip-input').value = '';
+                } else {
+                    alert(`Location not found for IP: ${ip}\n${data.country_name || 'Unknown location'}`);
+                }
+            } catch(error) {
+                console.error('Search error:', error);
+                alert('Error searching IP. Make sure the backend is running.');
+            }
+        }
+        
+        // Add marker to map
+        function addMarkerToMap(location) {
+            // Clear previous markers
+            markers.forEach(marker => map.removeLayer(marker));
+            markers = [];
+            
+            // Add new marker
+            const marker = L.marker([location.latitude, location.longitude]).addTo(map);
+            marker.bindPopup(`
+                <div style="font-family: monospace;">
+                    <strong>🌐 ${location.ip}</strong><br>
+                    📍 ${location.city || 'Unknown City'}, ${location.country_name || 'Unknown Country'}<br>
+                    🏢 ${location.isp || 'Unknown ISP'}<br>
+                    📡 ${location.as_name || ''}
+                </div>
+            `).openPopup();
+            markers.push(marker);
+            
+            // Zoom to location
+            map.setView([location.latitude, location.longitude], 10);
+        }
+        
+        // Track my IP
+        async function trackMyIP() {
+            try {
+                const response = await fetch(`${API_BASE}/api/geoip/myip`);
+                const data = await response.json();
+                
+                if (data.latitude && data.longitude && data.latitude !== 0) {
+                    addMarkerToMap(data);
+                } else {
+                    alert(`Your IP: ${data.ip}\nLocation: ${data.country_name || 'Unknown'}`);
+                }
+            } catch(error) {
+                console.error('Track my IP error:', error);
+                alert('Could not get your location. Make sure backend is running.');
+            }
+        }
+        
+        // Load recent connections
+        async function loadConnections() {
+            try {
+                const response = await fetch(`${API_BASE}/api/connections`);
+                const connections = await response.json();
+                
+                // Extract unique remote IPs (exclude private/local IPs)
+                const ips = [...new Set(connections
+                    .map(c => c.remote_ip)
+                    .filter(ip => ip && 
+                        !ip.startsWith('192.168.') && 
+                        !ip.startsWith('10.') && 
+                        !ip.startsWith('172.') &&
+                        !ip.startsWith('127.') && 
+                        !ip.startsWith('169.254') &&
+                        ip !== '0.0.0.0'
+                    )
+                )];
+                
+                const container = document.getElementById('ip-list');
+                if (ips.length === 0) {
+                    container.innerHTML = '<div class="no-data">No external connections yet. Browse some websites to see IPs here!</div>';
+                    return;
+                }
+                
+                container.innerHTML = ips.slice(0, 30).map(ip => `
+                    <div class="ip-card" onclick="searchIPFromList('${ip}')">
+                        <span>🌐 ${ip}</span>
+                        <span style="color: #00d4ff;">🔍 Click to locate →</span>
+                    </div>
+                `).join('');
+            } catch(error) {
+                console.error('Load connections error:', error);
+                document.getElementById('ip-list').innerHTML = '<div class="no-data">Could not load connections. Is backend running?</div>';
+            }
+        }
+        
+        // Search IP from list
+        function searchIPFromList(ip) {
+            document.getElementById('ip-input').value = ip;
+            searchIP();
+        }
+        
+        // Make functions global for HTML buttons
+        window.searchIP = searchIP;
+        window.trackMyIP = trackMyIP;
+        window.searchIPFromList = searchIPFromList;
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            initMap();
+            loadConnections();
+            // Refresh connections every 30 seconds
+            setInterval(loadConnections, 30000);
+            // Check API status every 10 seconds
+            setInterval(checkAPIStatus, 10000);
+        });
+    </script>
+</body>
+</html>

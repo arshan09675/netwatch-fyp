@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NetWatch Ultimate - Complete Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body{background:#050814;color:#fff;font-family:'Inter',sans-serif;}
+        
+        .navbar{background:rgba(5,8,20,0.95);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.1);padding:1rem 2rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;}
+        .logo{font-size:1.5rem;font-weight:700;background:linear-gradient(135deg,#00d4ff,#6c63ff);-webkit-background-clip:text;background-clip:text;color:transparent;}
+        .nav-links{display:flex;gap:1rem;flex-wrap:wrap;}
+        .nav-link{color:#7f8cbf;text-decoration:none;padding:0.5rem 1rem;border-radius:10px;}
+        .nav-link:hover,.nav-link.active{background:rgba(0,212,255,0.15);color:#00d4ff;}
+        .ws-status{display:flex;align-items:center;gap:8px;background:rgba(0,212,255,0.1);padding:0.3rem 1rem;border-radius:20px;font-size:0.75rem;}
+        .ws-dot{width:8px;height:8px;border-radius:50%;background:#2ecc87;animation:pulse 1.5s infinite;}
+        @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
+        
+        .container{padding:1.5rem;max-width:1600px;margin:0 auto;}
+        
+        .kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:1rem;margin-bottom:1.5rem;}
+        .kpi-card{background:rgba(17,22,42,0.8);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:1rem;}
+        .kpi-label{font-size:0.7rem;color:#7f8cbf;margin-bottom:0.3rem;}
+        .kpi-value{font-size:1.5rem;font-weight:700;font-family:monospace;}
+        .kpi-unit{font-size:0.7rem;color:#7f8cbf;}
+        .progress-bar{height:4px;background:rgba(255,255,255,0.1);border-radius:4px;overflow:hidden;margin-top:0.3rem;}
+        .progress-fill{height:100%;border-radius:4px;transition:width 0.5s;}
+        
+        .two-columns{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;}
+        .three-columns{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1rem;}
+        
+        .panel{background:rgba(17,22,42,0.8);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:1rem;}
+        .panel-title{font-size:0.8rem;color:#7f8cbf;margin-bottom:0.8rem;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+        
+        .data-table{width:100%;border-collapse:collapse;font-size:0.75rem;}
+        .data-table th{text-align:left;padding:0.5rem;color:#7f8cbf;}
+        .data-table td{padding:0.5rem;border-bottom:1px solid rgba(255,255,255,0.05);}
+        
+        .packet-table-container{max-height:300px;overflow-y:auto;font-family:monospace;font-size:11px;}
+        .packet-table{width:100%;border-collapse:collapse;}
+        .packet-table th{text-align:left;padding:0.5rem;color:#7f8cbf;position:sticky;top:0;background:#11162a;}
+        .packet-table td{padding:0.5rem;border-bottom:1px solid rgba(255,255,255,0.05);}
+        
+        .filter-bar{display:flex;gap:0.5rem;margin-bottom:0.8rem;flex-wrap:wrap;align-items:center;}
+        .filter-select{background:#1a2040;border:1px solid rgba(255,255,255,0.1);padding:0.3rem;border-radius:8px;color:white;}
+        .filter-input{background:#1a2040;border:1px solid rgba(255,255,255,0.1);padding:0.3rem;border-radius:8px;color:white;width:120px;}
+        .filter-btn{background:#00d4ff;border:none;padding:0.3rem 0.8rem;border-radius:8px;cursor:pointer;color:#050814;font-weight:500;}
+        .clear-btn{background:#ef4444;border:none;padding:0.3rem 0.8rem;border-radius:8px;cursor:pointer;color:white;}
+        .pcap-btn{background:#8b5cf6;border:none;padding:0.3rem 0.8rem;border-radius:8px;cursor:pointer;color:white;}
+        
+        .status-online{color:#2ecc87;}
+        .badge-critical{background:rgba(239,68,68,0.2);color:#ef4444;padding:0.2rem 0.5rem;border-radius:10px;font-size:0.7rem;}
+        .badge-warning{background:rgba(245,158,11,0.2);color:#f59e0b;padding:0.2rem 0.5rem;border-radius:10px;font-size:0.7rem;}
+        .badge-info{background:rgba(0,212,255,0.2);color:#00d4ff;padding:0.2rem 0.5rem;border-radius:10px;font-size:0.7rem;}
+        
+        .chart-container{height:250px;}
+        
+        @media (max-width:1200px){.kpi-grid{grid-template-columns:repeat(3,1fr);}.three-columns{grid-template-columns:1fr;}}
+        @media (max-width:768px){.two-columns{grid-template-columns:1fr;}.kpi-grid{grid-template-columns:repeat(2,1fr);}}
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo">🌐 NetWatch Ultimate v7.0</div>
+        <div class="nav-links">
+            <a href="#" class="nav-link active">Dashboard</a>
+            <a href="alerts.html" class="nav-link">Alerts</a>
+            <a href="map.html" class="nav-link">Map</a>
+        </div>
+        <div class="ws-status"><div class="ws-dot"></div><span id="ws-status">Connecting...</span></div>
+    </nav>
+
+    <div class="container">
+        <!-- KPI Grid -->
+        <div class="kpi-grid">
+            <div class="kpi-card"><div class="kpi-label">📥 Download</div><div class="kpi-value" id="download">0.00</div><div class="kpi-unit">Mbps</div><div class="progress-bar"><div class="progress-fill" id="download-bar" style="width:0%;background:#3b82f6"></div></div></div>
+            <div class="kpi-card"><div class="kpi-label">📤 Upload</div><div class="kpi-value" id="upload">0.00</div><div class="kpi-unit">Mbps</div><div class="progress-bar"><div class="progress-fill" id="upload-bar" style="width:0%;background:#2ecc87"></div></div></div>
+            <div class="kpi-card"><div class="kpi-label">📊 Total</div><div class="kpi-value" id="total">0.00</div><div class="kpi-unit">Mbps</div></div>
+            <div class="kpi-card"><div class="kpi-label">⚙️ CPU</div><div class="kpi-value" id="cpu">0</div><div class="kpi-unit">%</div><div class="progress-bar"><div class="progress-fill" id="cpu-bar" style="width:0%;background:#f59e0b"></div></div></div>
+            <div class="kpi-card"><div class="kpi-label">🧠 Memory</div><div class="kpi-value" id="memory">0</div><div class="kpi-unit">%</div><div class="progress-bar"><div class="progress-fill" id="memory-bar" style="width:0%;background:#06b6d4"></div></div></div>
+            <div class="kpi-card"><div class="kpi-label">🔌 Connections</div><div class="kpi-value" id="connections">0</div><div class="kpi-sub" id="memory-detail">0 / 0 GB</div></div>
+        </div>
+
+        <!-- Traffic Chart + Protocol Chart -->
+        <div class="two-columns">
+            <div class="panel"><div class="panel-title">📈 Live Traffic — Last 60 Seconds</div><div class="chart-container"><canvas id="trafficChart"></canvas></div></div>
+            <div class="panel"><div class="panel-title">📊 Protocol Distribution</div><div class="chart-container"><canvas id="protocolChart"></canvas></div><div id="packet-stats" style="text-align:center;font-size:0.7rem;color:#7f8cbf;margin-top:0.5rem;">Loading...</div></div>
+        </div>
+
+        <!-- AI Prediction + System Info + Threat Intel -->
+        <div class="three-columns">
+            <div class="panel"><div class="panel-title">🔮 AI Traffic Prediction</div><div style="text-align:center;padding:1rem;"><div style="font-size:2rem;font-weight:700;background:linear-gradient(135deg,#00d4ff,#8b5cf6);-webkit-background-clip:text;background-clip:text;color:transparent;" id="ai-prediction">-- Mbps</div><div style="font-size:0.7rem;color:#7f8cbf;" id="ai-confidence">Confidence: --%</div><div style="margin-top:0.5rem;"><span id="ai-trend">📈 Trend: --</span></div></div></div>
+            <div class="panel"><div class="panel-title">🖥️ System Info</div><div id="system-info"><div>Host: <span id="hostname">--</span></div><div>OS: <span id="os">--</span></div><div>Uptime: <span id="uptime">--</span> hours</div><div>Disk: <span id="disk">--</span>%</div><div class="progress-bar"><div class="progress-fill" id="disk-bar" style="width:0%;background:#8b5cf6"></div></div></div></div>
+            <div class="panel"><div class="panel-title">🛡️ Threat Intelligence</div><div id="threat-summary" style="text-align:center;">Loading...</div><div id="malicious-ips" style="margin-top:0.5rem;font-size:0.7rem;"></div><div class="panel-title" style="margin-top:0.5rem;">🔒 Auto Blocker</div><div id="blocker-status" style="font-size:0.7rem;">Status: <span id="blocker-enabled">Checking...</span></div></div>
+        </div>
+
+        <!-- LIVE PACKET STREAM SECTION -->
+        <div class="panel">
+            <div class="panel-title">📦 Live Packet Stream <span id="packet-count" style="margin-left: auto; font-size: 0.7rem;">0 packets</span></div>
+            <div class="filter-bar">
+                <select id="proto-filter" class="filter-select">
+                    <option value="all">All Protocols</option>
+                    <option value="tcp">TCP</option>
+                    <option value="udp">UDP</option>
+                    <option value="icmp">ICMP</option>
+                    <option value="arp">ARP</option>
+                    <option value="dns">DNS</option>
+                    <option value="http">HTTP</option>
+                    <option value="https">HTTPS</option>
+                </select>
+                <input type="text" id="src-ip-filter" class="filter-input" placeholder="Source IP">
+                <input type="text" id="dst-ip-filter" class="filter-input" placeholder="Dest IP">
+                <button onclick="applyFilters()" class="filter-btn">Apply Filter</button>
+                <button onclick="clearFilters()" class="clear-btn">Clear</button>
+                <button onclick="exportPCAP()" class="pcap-btn">📥 Download PCAP</button>
+            </div>
+            <div class="packet-table-container">
+                <table class="packet-table">
+                    <thead><tr><th>Time</th><th>Source</th><th>Destination</th><th>Protocol</th><th>Size</th><th>Info</th></tr></thead>
+                    <tbody id="packet-tbody"><tr><td colspan="6" style="text-align:center;">Connecting to packet stream...</td></tr></tbody>
+                </table>
+            </div>
+            <div style="display: flex; gap: 1rem; margin-top: 0.8rem; font-size: 0.7rem; flex-wrap: wrap;">
+                <div>📊 Total: <span id="stats-total">0</span></div>
+                <div>🔵 TCP: <span id="stats-tcp">0</span></div>
+                <div>🟢 UDP: <span id="stats-udp">0</span></div>
+                <div>🟡 ICMP: <span id="stats-icmp">0</span></div>
+                <div>🔴 Top Source: <span id="top-src">-</span></div>
+                <div>🟣 Top Dest: <span id="top-dst">-</span></div>
+            </div>
+        </div>
+
+        <!-- Websites Table + Dark Web Scanner -->
+        <div class="two-columns">
+            <div class="panel"><div class="panel-title">🌐 Live Websites & Services</div><div style="max-height:300px;overflow-y:auto;"><table class="data-table"><thead><tr><th>#</th><th>Website</th><th>Category</th><th>Connections</th></tr></thead><tbody id="websites-tbody"></tbody></table></div></div>
+            <div class="panel"><div class="panel-title">🌑 Dark Web Scanner</div><div id="darkweb-status" style="text-align:center;padding:0.5rem;">Scanning for threats...</div><div id="darkweb-detections" style="max-height:250px;overflow-y:auto;"></div><div style="margin-top:0.5rem;"><button onclick="scanCustomIP()" style="background:linear-gradient(135deg,#00d4ff,#6c63ff);border:none;padding:0.3rem 0.8rem;border-radius:20px;cursor:pointer;">🔍 Scan IP</button><input type="text" id="scan-ip" placeholder="Enter IP" style="background:#1a2040;border:1px solid rgba(255,255,255,0.1);padding:0.3rem;border-radius:10px;color:white;width:120px;"></div></div>
+        </div>
+
+        <!-- Adapters Table + Processes -->
+        <div class="two-columns">
+            <div class="panel"><div class="panel-title">🔌 Network Adapters</div><div style="max-height:250px;overflow-y:auto;"><table class="data-table"><thead><tr><th>Adapter</th><th>IP</th><th>Status</th><th>↓ Mbps</th><th>↑ Mbps</th></tr></thead><tbody id="adapters-tbody"></tbody></table></div></div>
+            <div class="panel"><div class="panel-title">🔥 Top Bandwidth Processes</div><div style="max-height:250px;overflow-y:auto;"><table class="data-table"><thead><tr><th>#</th><th>Process</th><th>Mbps</th></tr></thead><tbody id="processes-tbody"></tbody></table></div></div>
+        </div>
+
+        <!-- Live Connections + Devices -->
+        <div class="two-columns">
+            <div class="panel"><div class="panel-title">🔗 Live Connections</div><div style="max-height:250px;overflow-y:auto;"><table class="data-table"><thead><tr><th>Local</th><th>Remote</th><th>Process</th></tr></thead><tbody id="connections-tbody"></tbody></table></div></div>
+            <div class="panel">
+                <div class="panel-title">
+                    📱 Discovered Devices
+                    <span id="device-count" style="margin-left:auto;font-size:0.7rem;color:#00d4ff;"></span>
+                    <button onclick="monitorAll()" style="margin-left:8px;background:linear-gradient(135deg,#f59e0b,#ef4444);border:none;padding:0.2rem 0.6rem;border-radius:8px;cursor:pointer;font-size:0.7rem;color:#fff;">👁 Monitor ALL</button>
+                    <button onclick="stopAll()" style="margin-left:4px;background:#ef4444;border:none;padding:0.2rem 0.6rem;border-radius:8px;cursor:pointer;font-size:0.7rem;color:#fff;">■ Stop ALL</button>
+                    <button onclick="unblockAll()" style="margin-left:4px;background:#16a34a;border:none;padding:0.2rem 0.6rem;border-radius:8px;cursor:pointer;font-size:0.7rem;color:#fff;">✓ Unblock ALL</button>
+                </div>
+                <div style="max-height:250px;overflow-y:auto;">
+                    <table class="data-table">
+                        <thead><tr><th>IP</th><th>MAC</th><th>Vendor</th><th>Status</th><th>Actions</th></tr></thead>
+                        <tbody id="devices-tbody"><tr><td colspan="5" style="text-align:center;color:#7f8cbf;padding:1rem;">Loading...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Per-device MITM traffic panel -->
+        <div class="panel" id="mitm-panel" style="display:none;">
+            <div class="panel-title">
+                🔍 Monitored Device Traffic
+                <span id="mitm-active-label" style="margin-left:auto;font-size:0.7rem;color:#f59e0b;"></span>
+            </div>
+            <div id="mitm-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:1rem;margin-top:0.5rem;"></div>
+        </div>
+    </div>
+
+    <script>
+        // Use a RELATIVE base so every fetch() is same-origin as the page that
+        // served it. This matters for auth: the login cookie is bound to the
+        // host you logged in from (e.g. localhost). A hardcoded
+        // 'http://127.0.0.1:8000' base made these calls CROSS-origin
+        // (127.0.0.1 != localhost), so the browser refused to send the cookie
+        // and the endpoints returned 401 — breaking Devices and Websites while
+        // the same-origin WebSocket (adapters/processes) kept working.
+        // Empty string => '/api/...' => always same origin => cookie sent.
+        const API_BASE = '';
+        let ws = null;
+        let packetWs = null;
+        let trafficChart = null;
+        let protocolChart = null;
+
+        // Initialize Charts
+        function initCharts() {
+            const ctx1 = document.getElementById('trafficChart').getContext('2d');
+            trafficChart = new Chart(ctx1, {
+                type: 'line',
+                data: { labels: [], datasets: [{ label: 'Download', data: [], borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', fill: true, tension: 0.4 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#7f8cbf' } } }, scales: { x: { ticks: { color: '#4a5580' } }, y: { ticks: { color: '#4a5580' } } } }
+            });
+
+            const ctx2 = document.getElementById('protocolChart').getContext('2d');
+            protocolChart = new Chart(ctx2, {
+                type: 'doughnut',
+                data: { labels: ['TCP', 'UDP', 'ICMP', 'ARP', 'DNS', 'HTTP', 'HTTPS', 'Other'], datasets: [{ data: [0,0,0,0,0,0,0,0], backgroundColor: ['#3b82f6','#2ecc87','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#ec4899','#6b7280'] }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: '#7f8cbf', font: { size: 9 } } }, tooltip: { callbacks: { label: function(ctx) { const total = ctx.dataset.data.reduce((a,b)=>a+b,0); const percent = total>0 ? ((ctx.raw/total)*100).toFixed(1):0; return `${ctx.label}: ${ctx.raw} packets (${percent}%)`; } } } } }
+            });
+        }
+
+        // Update Protocol Chart
+        async function updateProtocolChart() {
+            try {
+                const res = await fetch('/api/sniffer/status');
+                const data = await res.json();
+                if (data.protocols && protocolChart) {
+                    const p = data.protocols;
+                    const chartData = [p.tcp||0, p.udp||0, p.icmp||0, p.arp||0, p.dns||0, p.http||0, p.https||0, p.other||0];
+                    protocolChart.data.datasets[0].data = chartData;
+                    protocolChart.update();
+                    const total = chartData.reduce((a,b)=>a+b,0);
+                    document.getElementById('packet-stats').innerHTML = `📊 TCP: ${p.tcp||0} | UDP: ${p.udp||0} | Total: ${total} packets`;
+                }
+            } catch(e) { console.log('Protocol chart error:', e); }
+        }
+
+        // Load Threat Status - FIXED
+        async function loadThreatStatus() {
+            try {
+                const res = await fetch(`${API_BASE}/api/threats/status`);
+                const data = await res.json();
+                console.log('Threat Status:', data);
+                
+                if (data.abuseipdb_configured === true) {
+                    document.getElementById('blocker-enabled').innerHTML = '✅ Active';
+                } else {
+                    document.getElementById('blocker-enabled').innerHTML = '⚙️ Not configured';
+                }
+                
+                if (data.total > 0) {
+                    document.getElementById('blocker-status').innerHTML = `🔒 ${data.total} IPs blocked`;
+                }
+            } catch(e) { 
+                console.log('Threat status error:', e);
+                document.getElementById('blocker-enabled').innerHTML = '❌ Error';
+            }
+        }
+
+        // Load Threat Summary
+        async function loadThreatSummary() {
+            try {
+                const res = await fetch(`${API_BASE}/api/threat/stats`);
+                const data = await res.json();
+                const threatDiv = document.getElementById('threat-summary');
+                if (data.total_threats > 0) {
+                    threatDiv.innerHTML = `<span class="badge-critical">⚠️ ${data.total_threats} threats detected</span>`;
+                } else {
+                    threatDiv.innerHTML = '<span class="badge-info">✅ No active threats</span>';
+                }
+            } catch(e) { console.log('Threat summary error:', e); }
+        }
+
+        // Load Websites
+        async function loadWebsites() {
+            try {
+                const res = await fetch(`${API_BASE}/api/websites`);
+                const data = await res.json();
+                const tbody = document.getElementById('websites-tbody');
+                if (data.top_sites && data.top_sites.length > 0) {
+                    tbody.innerHTML = data.top_sites.slice(0,10).map((s,i)=>`<tr><td>${i+1}</td><td><strong>${s.domain}</strong></td><td class="badge-info">${s.category}</td><td>${s.connections}</td></tr>`).join('');
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="4">No active websites</td></tr>';
+                }
+            } catch(e) { console.log('Websites error:', e); }
+        }
+
+        // ── Spoofer state ────────────────────────────────────────────────────
+        let _monitoredIPs = new Set();   // IPs currently being monitored (from backend)
+        let _blockedIPs   = new Set();   // IPs currently being blocked   (from backend)
+        let _gatewayIP    = null;        // current gateway/hotspot host (dynamic)
+
+        // ── Load Devices ─────────────────────────────────────────────────────
+        async function loadDevices() {
+            try {
+                const [devRes, spoofRes] = await Promise.all([
+                    fetch(`${API_BASE}/api/devices`),
+                    fetch(`${API_BASE}/api/spoof/status`).catch(() => null)
+                ]);
+                const devices = await devRes.json();
+                const spoof   = spoofRes ? await spoofRes.json() : {};
+                _monitoredIPs = new Set(spoof.monitored_ips || []);
+                _blockedIPs   = new Set(spoof.blocked_ips   || []);
+                _gatewayIP    = spoof.gateway_ip || _gatewayIP;   // current gateway (dynamic)
+
+                const tbody   = document.getElementById('devices-tbody');
+                const countEl = document.getElementById('device-count');
+                if (countEl) countEl.textContent = devices.length ? `${devices.length} found` : '';
+
+                if (!devices || devices.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#7f8cbf;padding:1rem;">Scanning… (run as Administrator with Npcap)</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = devices.slice(0, 25).map(d => {
+                    const mac    = (d.mac   && d.mac   !== 'Unknown') ? d.mac   : '--';
+                    const vendor = (d.vendor && d.vendor !== 'Unknown') ? d.vendor
+                                                                        : '<span style="color:#4a5580">Unknown</span>';
+                    const isMonitored = _monitoredIPs.has(d.ip);
+                    const isBlocked   = _blockedIPs.has(d.ip);
+                    const isGateway   = _gatewayIP && d.ip === _gatewayIP;
+                    const isOnline    = d.online !== false;
+
+                    // Status: a blocked device is shown red regardless of reachability.
+                    let statusText, statusStyle;
+                    if (isBlocked) { statusText = '⛔ Blocked'; statusStyle = 'color:#ef4444;font-weight:bold;'; }
+                    else if (isOnline) { statusText = '● Online'; statusStyle = 'color:#2ecc87'; }
+                    else { statusText = '○ Offline'; statusStyle = 'color:#ef4444'; }
+
+                    // Two independent toggles per device (Monitor and Block). They
+                    // are mutually exclusive, so each is disabled while the other
+                    // mode is active. The gateway/hotspot host can be neither.
+                    const base = 'border:none;padding:0.15rem 0.5rem;border-radius:6px;font-size:0.62rem;color:#fff;margin:1px;';
+                    let actions;
+                    if (isGateway) {
+                        actions = `<button disabled title="Gateway / hotspot host — routes the whole network, can't be monitored or blocked" style="${base}background:#3a4060;color:#9aa3c7;cursor:not-allowed;">⛔ Gateway</button>`;
+                    } else {
+                        // Monitor toggle (disabled while blocked)
+                        const monLabel = isMonitored ? '■ Stop' : '👁 Monitor';
+                        const monBg    = isMonitored ? '#ef4444' : '#6c63ff';
+                        const monClick = isMonitored ? `stopSpoof('${d.ip}')` : `startSpoof('${d.ip}')`;
+                        const monBtn = isBlocked
+                            ? `<button disabled title="Unblock first to monitor" style="${base}background:#2a2f4a;color:#6b7299;cursor:not-allowed;">👁 Monitor</button>`
+                            : `<button onclick="${monClick}" data-ip="${d.ip}" data-act="monitor" style="${base}background:${monBg};cursor:pointer;">${monLabel}</button>`;
+
+                        // Block toggle (disabled while monitored)
+                        const blkLabel = isBlocked ? '✓ Unblock' : '🚫 Block';
+                        const blkBg    = isBlocked ? '#16a34a' : '#b45309';
+                        const blkClick = isBlocked ? `unblockDevice('${d.ip}')` : `blockDevice('${d.ip}')`;
+                        const blkBtn = isMonitored
+                            ? `<button disabled title="Stop monitoring first to block" style="${base}background:#2a2f4a;color:#6b7299;cursor:not-allowed;">🚫 Block</button>`
+                            : `<button onclick="${blkClick}" data-ip="${d.ip}" data-act="block" style="${base}background:${blkBg};cursor:pointer;">${blkLabel}</button>`;
+
+                        actions = monBtn + blkBtn;
+                    }
+
+                    return `<tr title="${d.type || ''}">
+                        <td style="font-family:monospace;">${d.ip}</td>
+                        <td style="font-family:monospace;font-size:0.68em;">${mac}</td>
+                        <td>${vendor}</td>
+                        <td style="${statusStyle}">${statusText}</td>
+                        <td style="white-space:nowrap;">${actions}</td>
+                    </tr>`;
+                }).join('');
+            } catch(e) {
+                console.log('Devices error:', e);
+                const tbody = document.getElementById('devices-tbody');
+                if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#ef4444;">Error loading devices</td></tr>';
+            }
+        }
+
+        // ── ARP spoof / block controls ────────────────────────────────────────
+        // Mark a device's specific action button (act = 'monitor'|'block') busy
+        // while its request is in flight.
+        function _setDeviceBtnBusy(ip, act, label) {
+            const btn = document.querySelector(`#devices-tbody button[data-ip="${ip}"][data-act="${act}"]`);
+            if (btn) { btn.disabled = true; btn.textContent = label; btn.style.opacity = '0.6'; }
+            return btn;
+        }
+
+        async function startSpoof(ip) {
+            // Instant guard: never attempt to MITM the gateway/hotspot host.
+            if (_gatewayIP && ip === _gatewayIP) {
+                showToast(`⛔ Cannot monitor the gateway/hotspot host (${ip}).`, 'error');
+                return;
+            }
+            _setDeviceBtnBusy(ip, 'monitor', 'Starting…');
+            try {
+                const res  = await fetch(`${API_BASE}/api/spoof/start/${ip}`, {method:'POST'});
+                const data = await res.json().catch(() => ({}));
+                console.log('Spoof start:', res.status, data);
+                if (res.ok && data.ok) {
+                    showToast(data.already
+                        ? `👁 ${ip} is already being monitored`
+                        : `👁 Monitoring ${ip} — traffic will appear below shortly`);
+                } else {
+                    // Surface the REAL reason (gateway, offline, wrong network, no Npcap…).
+                    showToast(`⛔ ${data.error || ('Could not start monitoring ' + ip)}`, 'error');
+                }
+            } catch (e) {
+                console.log('Spoof start error:', e);
+                showToast(`⛔ Network error starting monitor for ${ip}`, 'error');
+            }
+            // Re-sync the buttons AND the traffic panel from the actual backend status.
+            await loadDevices();
+            loadMitmTraffic();
+        }
+
+        async function stopSpoof(ip) {
+            _setDeviceBtnBusy(ip, 'monitor', 'Stopping…');
+            try {
+                const res  = await fetch(`${API_BASE}/api/spoof/stop/${ip}`, {method:'POST'});
+                const data = await res.json().catch(() => ({}));
+                console.log('Spoof stop:', res.status, data);
+                if (res.ok && data.ok) {
+                    showToast(`■ Stopped monitoring ${ip} — ARP restored`);
+                } else {
+                    showToast(`⛔ ${data.error || ('Could not stop ' + ip)}`, 'error');
+                }
+            } catch (e) {
+                console.log('Spoof stop error:', e);
+                showToast(`⛔ Network error stopping ${ip}`, 'error');
+            }
+            await loadDevices();
+            loadMitmTraffic();
+        }
+
+        // ── Block / Unblock (cut & restore a device's internet) ───────────────
+        async function blockDevice(ip) {
+            // Instant guard: never block the gateway/hotspot host.
+            if (_gatewayIP && ip === _gatewayIP) {
+                showToast(`⛔ Cannot block the gateway/hotspot host (${ip}).`, 'error');
+                return;
+            }
+            if (!confirm(`Block internet for ${ip}?\n\nIts traffic will be ARP-redirected to this PC and dropped, ` +
+                         `cutting its internet until you Unblock it.`)) return;
+            _setDeviceBtnBusy(ip, 'block', 'Blocking…');
+            try {
+                const res  = await fetch(`${API_BASE}/api/block/start/${ip}`, {method:'POST'});
+                const data = await res.json().catch(() => ({}));
+                console.log('Block start:', res.status, data);
+                if (res.ok && data.ok) {
+                    showToast(`🚫 Blocked ${ip} — its internet is now cut`);
+                } else {
+                    showToast(`⛔ ${data.error || ('Could not block ' + ip)}`, 'error');
+                }
+            } catch (e) {
+                console.log('Block start error:', e);
+                showToast(`⛔ Network error blocking ${ip}`, 'error');
+            }
+            await loadDevices();
+        }
+
+        async function unblockDevice(ip) {
+            _setDeviceBtnBusy(ip, 'block', 'Unblocking…');
+            try {
+                const res  = await fetch(`${API_BASE}/api/block/stop/${ip}`, {method:'POST'});
+                const data = await res.json().catch(() => ({}));
+                console.log('Block stop:', res.status, data);
+                if (res.ok && data.ok) {
+                    showToast(`✓ Unblocked ${ip} — internet restored`);
+                } else {
+                    showToast(`⛔ ${data.error || ('Could not unblock ' + ip)}`, 'error');
+                }
+            } catch (e) {
+                console.log('Block stop error:', e);
+                showToast(`⛔ Network error unblocking ${ip}`, 'error');
+            }
+            await loadDevices();
+        }
+
+        async function unblockAll() {
+            try {
+                const res  = await fetch(`${API_BASE}/api/block/stop-all`, {method:'POST'});
+                const data = await res.json().catch(() => ({}));
+                const n = data.results ? Object.keys(data.results).length : 0;
+                showToast(`✓ Unblock ALL — restored internet for ${n} device(s)`);
+            } catch (e) {
+                console.log('Unblock all error:', e);
+                showToast('⛔ Network error during Unblock ALL', 'error');
+            }
+            await loadDevices();
+        }
+
+        async function monitorAll() {
+            if (!confirm('Monitor ALL discovered devices?\n\n' +
+                         '⚠ This routes every device\'s traffic through your PC.\n' +
+                         'Network speed may drop if many devices are active.\n' +
+                         'Test on ONE device first (recommended).')) return;
+            const res  = await fetch(`${API_BASE}/api/spoof/start-all`, {method:'POST'});
+            const data = await res.json();
+            showToast(`👁 Monitoring ${(data.targets||[]).length} devices (staggered start)…`);
+            setTimeout(loadDevices, 3000);
+        }
+
+        async function stopAll() {
+            const res  = await fetch(`${API_BASE}/api/spoof/stop-all`, {method:'POST'});
+            const data = await res.json();
+            showToast('■ STOP ALL — ARP entries restored for all devices');
+            setTimeout(loadDevices, 1500);
+            document.getElementById('mitm-panel').style.display = 'none';
+        }
+
+        // ── Per-device traffic cards ──────────────────────────────────────────
+        async function loadMitmTraffic() {
+            if (_monitoredIPs.size === 0) {
+                document.getElementById('mitm-panel').style.display = 'none';
+                return;
+            }
+            document.getElementById('mitm-panel').style.display = '';
+            document.getElementById('mitm-active-label').textContent =
+                `${_monitoredIPs.size} device(s) being monitored`;
+
+            try {
+                const res   = await fetch(`${API_BASE}/api/spoof/traffic`);
+                const tdata = await res.json();
+                const cards = document.getElementById('mitm-cards');
+
+                if (!Object.keys(tdata).length) {
+                    cards.innerHTML = '<div style="color:#7f8cbf;padding:0.5rem;">No traffic captured yet — traffic appears within seconds of monitoring start.</div>';
+                    return;
+                }
+
+                cards.innerHTML = Object.values(tdata).map(t => {
+                    const protos = Object.entries(t.protocols || {})
+                        .sort((a,b)=>b[1]-a[1]).slice(0,5)
+                        .map(([p,c]) => `<span style="background:rgba(0,212,255,0.1);padding:0.1rem 0.4rem;border-radius:4px;margin:0.1rem;display:inline-block;">${p}:${c}</span>`)
+                        .join('');
+                    const topDom = Object.entries(t.top_domains || {})
+                        .sort((a,b)=>b[1]-a[1]).slice(0,5)
+                        .map(([d,c]) => `<div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><span style="color:#7f8cbf;">${c}×</span> ${d}</div>`)
+                        .join('');
+                    const topIPs = Object.entries(t.top_ips || {})
+                        .sort((a,b)=>b[1]-a[1]).slice(0,3)
+                        .map(([ip,c]) => `<div><span style="color:#7f8cbf;">${c}×</span> <span style="font-family:monospace;">${ip}</span></div>`)
+                        .join('');
+                    return `
+                    <div style="background:rgba(108,99,255,0.08);border:1px solid rgba(108,99,255,0.25);border-radius:12px;padding:0.8rem;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem;">
+                            <strong style="font-family:monospace;color:#00d4ff;">${t.ip}</strong>
+                            <button onclick="stopSpoof('${t.ip}')" style="background:#ef4444;border:none;padding:0.1rem 0.4rem;border-radius:4px;cursor:pointer;font-size:0.65rem;color:#fff;">■ Stop</button>
+                        </div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.3rem;font-size:0.7rem;margin-bottom:0.4rem;">
+                            <div>⬇ ${t.mbps_in} Mbps  <span style="color:#7f8cbf;">${t.packets_in} pkts</span></div>
+                            <div>⬆ ${t.mbps_out} Mbps  <span style="color:#7f8cbf;">${t.packets_out} pkts</span></div>
+                        </div>
+                        <div style="font-size:0.65rem;margin-bottom:0.3rem;">${protos || '<span style="color:#4a5580">no traffic yet</span>'}</div>
+                        ${topDom ? `<div style="font-size:0.65rem;margin-top:0.3rem;"><div style="color:#7f8cbf;margin-bottom:0.1rem;">Top domains:</div>${topDom}</div>` : ''}
+                        ${topIPs ? `<div style="font-size:0.65rem;margin-top:0.3rem;"><div style="color:#7f8cbf;margin-bottom:0.1rem;">Top external IPs:</div>${topIPs}</div>` : ''}
+                        <div style="font-size:0.6rem;color:#4a5580;margin-top:0.3rem;">Monitoring for ${t.duration_s}s</div>
+                    </div>`;
+                }).join('');
+
+            } catch(e) {
+                console.log('MITM traffic error:', e);
+            }
+        }
+
+        // ── Toast helper ──────────────────────────────────────────────────────
+        // type: undefined/'info' (cyan) or 'error' (red, shown longer).
+        function showToast(msg, type) {
+            let t = document.getElementById('_toast');
+            if (!t) {
+                t = document.createElement('div');
+                t.id = '_toast';
+                t.style.cssText = 'position:fixed;bottom:1.5rem;right:1.5rem;color:#fff;padding:0.7rem 1.2rem;border-radius:10px;font-size:0.8rem;z-index:9999;max-width:360px;transition:opacity 0.5s;';
+                document.body.appendChild(t);
+            }
+            const isErr = type === 'error';
+            t.style.background = isErr ? '#3a1420' : '#1a2040';
+            t.style.border    = isErr ? '1px solid rgba(239,68,68,0.6)' : '1px solid rgba(0,212,255,0.3)';
+            t.textContent = msg;
+            t.style.opacity = '1';
+            clearTimeout(t._timer);
+            t._timer = setTimeout(() => { t.style.opacity = '0'; }, isErr ? 7000 : 4000);
+        }
+
+        // Load Connections
+        async function loadConnections() {
+            try {
+                const res = await fetch(`${API_BASE}/api/connections`);
+                const conns = await res.json();
+                const tbody = document.getElementById('connections-tbody');
+                tbody.innerHTML = conns.slice(0,10).map(c => `<tr><td style="font-family:monospace;">${c.local_ip}:${c.local_port}</td><td style="font-family:monospace;">${c.remote_ip}:${c.remote_port}</td><td>${c.process || 'system'}</td></tr>`).join('');
+            } catch(e) { console.log('Connections error:', e); }
+        }
+
+        // Load AI Prediction
+        async function loadAIPrediction() {
+            try {
+                const res = await fetch(`${API_BASE}/api/ai/predict`);
+                const data = await res.json();
+                if (data.predictions && data.predictions[0]) {
+                    document.getElementById('ai-prediction').innerHTML = data.predictions[0].prediction + ' Mbps';
+                    document.getElementById('ai-confidence').innerHTML = `Confidence: ${(data.predictions[0].confidence * 100).toFixed(0)}%`;
+                    document.getElementById('ai-trend').innerHTML = `📈 Trend: ${data.insights?.trend || 'stable'}`;
+                }
+            } catch(e) { console.log('AI error:', e); }
+        }
+
+        // Load Dark Web
+        async function loadDarkWeb() {
+            try {
+                const res = await fetch(`${API_BASE}/api/darkweb/detections`);
+                const data = await res.json();
+                const container = document.getElementById('darkweb-detections');
+                if (data && data.length > 0) {
+                    container.innerHTML = data.slice(0,10).map(d => `<div style="background:rgba(239,68,68,0.1);padding:0.5rem;margin-bottom:0.3rem;border-radius:8px;"><span class="badge-critical">⚠️ ${d.risk_level}</span> <span style="font-family:monospace;">${d.ip}:${d.port}</span><br><span style="font-size:0.65rem;">${d.reason}</span></div>`).join('');
+                    document.getElementById('darkweb-status').innerHTML = '⚠️ Threats detected!';
+                } else {
+                    container.innerHTML = '<div style="text-align:center;padding:1rem;">✅ No dark web detections</div>';
+                    document.getElementById('darkweb-status').innerHTML = '✅ No threats detected';
+                }
+            } catch(e) { console.log('Darkweb error:', e); }
+        }
+
+        // Packet Stream Functions
+        function connectPacketStream() {
+            try {
+                packetWs = new WebSocket(`ws://${window.location.hostname}:8000/ws/packets`);
+                packetWs.onopen = () => { console.log('Packet stream connected'); document.getElementById('packet-tbody').innerHTML = '<tr><td colspan="6">✅ Connected - Waiting for packets...</td></tr>'; };
+                packetWs.onmessage = (e) => {
+                    const msg = JSON.parse(e.data);
+                    if (msg.type === 'packet') {
+                        const p = msg.data;
+                        const tbody = document.getElementById('packet-tbody');
+                        if (tbody.children.length === 1 && tbody.children[0].innerHTML.includes('Connected')) tbody.innerHTML = '';
+                        const colors = {'TCP':'#3b82f6','UDP':'#2ecc87','ICMP':'#f59e0b'};
+                        tbody.insertAdjacentHTML('afterbegin', `<tr><td style="white-space:nowrap;">${p.time_str}</td><td>${p.src_ip}:${p.src_port}</td><td>${p.dst_ip}:${p.dst_port}</td><td style="color:${colors[p.protocol]||'#7f8cbf'}">${p.protocol}</td><td>${p.size} bytes</td><td>${p.info||'-'}</td></tr>`);
+                        while(tbody.children.length > 100) tbody.removeChild(tbody.lastChild);
+                    } else if (msg.type === 'stats') {
+                        document.getElementById('stats-total').innerHTML = msg.data.total_packets || 0;
+                        document.getElementById('stats-tcp').innerHTML = msg.data.by_protocol?.TCP || 0;
+                        document.getElementById('stats-udp').innerHTML = msg.data.by_protocol?.UDP || 0;
+                        document.getElementById('stats-icmp').innerHTML = msg.data.by_protocol?.ICMP || 0;
+                        const topSrc = Object.keys(msg.data.top_src_ips || {})[0];
+                        const topDst = Object.keys(msg.data.top_dst_ips || {})[0];
+                        document.getElementById('top-src').innerHTML = topSrc || '-';
+                        document.getElementById('top-dst').innerHTML = topDst || '-';
+                        document.getElementById('packet-count').innerHTML = `${msg.data.total_packets || 0} packets`;
+                    }
+                };
+                packetWs.onclose = () => { setTimeout(connectPacketStream, 3000); };
+                packetWs.onerror = (err) => { console.error('Packet stream error:', err); };
+            } catch(e) { console.error('WebSocket error:', e); }
+        }
+
+        // Main WebSocket
+        function connectWebSocket() {
+            ws = new WebSocket(`ws://${window.location.hostname}:8000/ws`);
+            ws.onopen = () => { document.getElementById('ws-status').innerHTML = 'Connected'; };
+            ws.onmessage = (e) => {
+                try {
+                    const data = JSON.parse(e.data);
+                    document.getElementById('download').innerHTML = (data.total_mbps_recv || 0).toFixed(2);
+                    document.getElementById('upload').innerHTML = (data.total_mbps_sent || 0).toFixed(2);
+                    document.getElementById('total').innerHTML = (data.total_mbps || 0).toFixed(2);
+                    document.getElementById('cpu').innerHTML = data.system?.cpu_pct || 0;
+                    document.getElementById('memory').innerHTML = data.system?.mem_pct || 0;
+                    document.getElementById('memory-detail').innerHTML = `${data.system?.mem_used_gb || 0} / ${data.system?.mem_total_gb || 0} GB`;
+                    document.getElementById('connections').innerHTML = data.active_connections || 0;
+                    document.getElementById('download-bar').style.width = Math.min(100, (data.total_mbps_recv||0)*2) + '%';
+                    document.getElementById('upload-bar').style.width = Math.min(100, (data.total_mbps_sent||0)*2) + '%';
+                    document.getElementById('cpu-bar').style.width = (data.system?.cpu_pct||0) + '%';
+                    document.getElementById('memory-bar').style.width = (data.system?.mem_pct||0) + '%';
+                    document.getElementById('disk-bar').style.width = (data.system?.disk_pct||0) + '%';
+                    document.getElementById('hostname').innerHTML = data.system?.hostname || '--';
+                    document.getElementById('os').innerHTML = data.system?.os?.split(' ')[0] || '--';
+                    document.getElementById('uptime').innerHTML = (data.system?.uptime_hrs||0).toFixed(1);
+                    document.getElementById('disk').innerHTML = (data.system?.disk_pct||0).toFixed(1);
+                    if (data.traffic_history && trafficChart) {
+                        trafficChart.data.labels = data.traffic_history.map(p => p.time_str);
+                        trafficChart.data.datasets[0].data = data.traffic_history.map(p => p.mbps_recv);
+                        trafficChart.update();
+                    }
+                    if (data.adapters) {
+                        document.getElementById('adapters-tbody').innerHTML = data.adapters.filter(a=>a.is_up).slice(0,10).map(a => `<tr><td><strong>${a.name}</strong></td><td>${a.ipv4||'--'}</td><td class="status-online">● Online</td><td>${a.mbps_recv.toFixed(3)}</td><td>${a.mbps_sent.toFixed(3)}</td></tr>`).join('');
+                    }
+                    if (data.top_processes) {
+                        document.getElementById('processes-tbody').innerHTML = data.top_processes.slice(0,10).map((p,i) => `<tr><td>${i+1}</td><td>${p.name}</td><td>${p.mbps.toFixed(2)}</td></tr>`).join('');
+                    }
+                } catch(err) { console.log('Parse error:', err); }
+            };
+            ws.onclose = () => { document.getElementById('ws-status').innerHTML = 'Reconnecting...'; setTimeout(connectWebSocket, 3000); };
+        }
+
+        // Utility Functions
+        function applyFilters() {
+            if (packetWs && packetWs.readyState === WebSocket.OPEN) {
+                const protocol = document.getElementById('proto-filter').value;
+                if (protocol !== 'all') packetWs.send(JSON.stringify({type:'filter', filter_type:'protocol', values:[protocol]}));
+                const srcIp = document.getElementById('src-ip-filter').value;
+                if (srcIp) packetWs.send(JSON.stringify({type:'filter', filter_type:'src_ip', values:[srcIp]}));
+                const dstIp = document.getElementById('dst-ip-filter').value;
+                if (dstIp) packetWs.send(JSON.stringify({type:'filter', filter_type:'dst_ip', values:[dstIp]}));
+            }
+        }
+        
+        function clearFilters() {
+            document.getElementById('proto-filter').value = 'all';
+            document.getElementById('src-ip-filter').value = '';
+            document.getElementById('dst-ip-filter').value = '';
+            if (packetWs && packetWs.readyState === WebSocket.OPEN) packetWs.send(JSON.stringify({type:'filter', filter_type:'clear', values:[]}));
+        }
+        
+        function exportPCAP() { window.open('/api/packets/export/pcap', '_blank'); }
+        
+        async function scanCustomIP() {
+            const ip = document.getElementById('scan-ip').value;
+            if (!ip) return;
+            try {
+                const res = await fetch(`/api/darkweb/scan?ip=${ip}&port=443`);
+                const data = await res.json();
+                alert(`Scan result for ${ip}:\n${data.reason || 'No threats detected'}\nRisk: ${data.risk_level}`);
+            } catch(e) { alert('Error scanning IP'); }
+        }
+
+        // Initialize
+        initCharts();
+        connectWebSocket();
+        connectPacketStream();
+        
+        // Load all data
+        updateProtocolChart();
+        loadThreatStatus();
+        loadThreatSummary();
+        loadWebsites();
+        loadDevices();
+        loadConnections();
+        loadAIPrediction();
+        loadDarkWeb();
+        loadMitmTraffic();
+
+        // Set intervals
+        setInterval(updateProtocolChart, 3000);
+        setInterval(loadThreatStatus, 5000);
+        setInterval(loadWebsites, 5000);
+        setInterval(loadDevices, 10000);
+        setInterval(loadConnections, 5000);
+        setInterval(loadAIPrediction, 10000);
+        setInterval(loadDarkWeb, 15000);
+        setInterval(loadMitmTraffic, 3000);   // refresh MITM traffic cards every 3 s
+
+        // Make global
+        window.applyFilters  = applyFilters;
+        window.clearFilters  = clearFilters;
+        window.exportPCAP    = exportPCAP;
+        window.startSpoof    = startSpoof;
+        window.stopSpoof     = stopSpoof;
+        window.blockDevice   = blockDevice;
+        window.unblockDevice = unblockDevice;
+        window.unblockAll    = unblockAll;
+        window.monitorAll    = monitorAll;
+        window.stopAll       = stopAll;
+        window.scanCustomIP = scanCustomIP;
+    </script>
+</body>
+</html>

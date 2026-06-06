@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  netwatch:
+    build: .
+    container_name: netwatch-ultimate
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/backend/data
+    restart: unless-stopped
+    privileged: true
+    # network_mode: host   ← REMOVE this line

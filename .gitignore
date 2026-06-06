@@ -1,0 +1,35 @@
+# ===== Secrets / environment =====
+.env
+.env.*
+!.env.example
+backend/.env
+backend/.env.*
+!backend/.env.example
+
+# ===== Local SQLite database & data =====
+data/
+backend/data/
+*.db
+*.sqlite
+*.sqlite3
+
+# ===== Packet captures (never publish raw network traffic) =====
+*.pcap
+*.pcapng
+*.cap
+
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.mypy_cache/
+.pytest_cache/
+
+# ===== OS / editor =====
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
